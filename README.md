@@ -3,7 +3,7 @@
 Projeto da **Global Solution FIAP 2026/2 (CitizenTech)**, curso de Ciência de Dados.
 Ideia #4: *onde faltam serviços de saúde*.
 
-- Grupo: [Luiz Fernando de Oliveira Pupo, Victor Cabrini, Tiago Sanches Biscari]
+- Grupo: Luiz Fernando de Oliveira Pupo, Victor Cabrini, Tiago Sanches Biscari
 - Vídeo (até 5 min): [preencher link do YouTube]
 
 ## 1. O que o projeto faz
