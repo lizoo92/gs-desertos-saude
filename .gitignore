@@ -1,0 +1,10 @@
+# ambiente virtual (pesado e recriável)
+.venv/
+
+# cache do Python
+__pycache__/
+*.pyc
+
+# arquivos automáticos do macOS e do editor
+.DS_Store
+.vscode/
