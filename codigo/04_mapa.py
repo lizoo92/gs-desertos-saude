@@ -60,7 +60,8 @@ def estilo(feature):
     }
 
 
-mapa = folium.Map(location=[-23.55, -46.63], zoom_start=10, tiles="OpenStreetMap")
+mapa = folium.Map(location=[-23.55, -46.63], zoom_start=10, tiles=None)
+folium.TileLayer("OpenStreetMap", name="Mapa base (OpenStreetMap)").add_to(mapa)
 
 colunas = ["nome_distrito", "pop_texto", "area_texto", "qtd_ubs", "indicador_texto", "classe", "faixa_texto", "geometry"]
 
@@ -69,7 +70,7 @@ def texto_faixa(classe):
         return "sem UBS dentro do distrito"
     if classe == 8:
         return "outlier (fora das 7 faixas)"
-    return f"{classe} de 7 (1 = mais carente)"
+    return f"{classe} de 7 (1 = menor oferta)"
 
 
 dados_mapa["faixa_texto"] = dados_mapa["classe"].apply(texto_faixa)
@@ -77,6 +78,7 @@ dados_mapa["faixa_texto"] = dados_mapa["classe"].apply(texto_faixa)
 folium.GeoJson(
     dados_mapa[colunas],
     style_function=estilo,
+    name="Distritos (UBS por 100 mil hab.)",
     tooltip=folium.GeoJsonTooltip(
         fields=["nome_distrito", "pop_texto", "area_texto", "qtd_ubs", "indicador_texto", "faixa_texto"],
         aliases=["Distrito", "População", "Área (km²)", "UBS públicas", "UBS por 100 mil hab.", "Faixa"],
@@ -138,9 +140,9 @@ for classe in [1, 2, 3, 4, 5, 6, 7]:
     maior = f"{limites.loc[classe, 'max']:.2f}".replace(".", ",")
     extra = ""
     if classe == 1:
-        extra = " (mais carente)"
+        extra = " (menor oferta)"
     if classe == 7:
-        extra = " (menos carente)"
+        extra = " (maior oferta)"
     linhas += f"<div>{quadradinho(CORES[classe])}{menor} a {maior}{extra}</div>"
 for nome, ponto, zoom, ordem in zip(
     dados_mapa["nome_distrito"], pontos, dados_mapa["zoom_rotulo"], dados_mapa["ordem_area"]
@@ -235,6 +237,80 @@ estilo_rotulos = """
 </style>
 """
 
-mapa.get_root().html.add_child(folium.Element(legenda + titulo + estilo_rotulos))
+dados_ranking = dados_mapa[["nome_distrito", "ubs_por_100mil", "qtd_ubs", "populacao"]].to_json(orient="records", force_ascii=False)
+
+ranking = """
+<div id="ranking" style="position:fixed;bottom:30px;right:10px;z-index:9999;background:white;
+border:1px solid #888;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,0.3);font-size:12px;width:360px;">
+<div style="padding:6px 10px;font-weight:bold;border-bottom:1px solid #ccc;">
+Ranking de distritos
+<span style="font-weight:normal;color:#555;">(clique no título da coluna para ordenar)</span>
+</div>
+<div style="max-height:260px;overflow-y:auto;">
+<table style="width:100%;border-collapse:collapse;">
+<thead><tr>
+<th data-chave="nome_distrito" data-rotulo="Distrito">Distrito</th>
+<th data-chave="ubs_por_100mil" data-rotulo="UBS por 100 mil">UBS por 100 mil</th>
+<th data-chave="qtd_ubs" data-rotulo="UBS">UBS</th>
+<th data-chave="populacao" data-rotulo="População">População</th>
+</tr></thead>
+<tbody id="rank-corpo"></tbody>
+</table>
+</div>
+</div>
+<style>
+#ranking th { cursor:pointer; position:sticky; top:0; background:#f0f0f0; text-align:left; padding:4px 6px; }
+#ranking td { padding:3px 6px; border-top:1px solid #eee; }
+</style>
+<script>
+(function () {
+    var dados = __DADOS__;
+    var chave = "ubs_por_100mil";
+    var crescente = true;
+
+    function desenhar() {
+        dados.sort(function (a, b) {
+            var va = a[chave];
+            var vb = b[chave];
+            if (typeof va === "string") {
+                return crescente ? va.localeCompare(vb, "pt-BR") : vb.localeCompare(va, "pt-BR");
+            }
+            return crescente ? va - vb : vb - va;
+        });
+
+        document.getElementById("rank-corpo").innerHTML = dados.map(function (d) {
+            return "<tr><td>" + d.nome_distrito + "</td><td>" +
+                d.ubs_por_100mil.toFixed(2).replace(".", ",") + "</td><td>" +
+                d.qtd_ubs + "</td><td>" + d.populacao.toLocaleString("pt-BR") + "</td></tr>";
+        }).join("");
+
+        document.querySelectorAll("#ranking th").forEach(function (th) {
+            var seta = "";
+            if (th.dataset.chave === chave) {
+                seta = crescente ? " ▲" : " ▼";
+            }
+            th.textContent = th.dataset.rotulo + seta;
+        });
+    }
+
+    document.querySelectorAll("#ranking th").forEach(function (th) {
+        th.addEventListener("click", function () {
+            if (chave === th.dataset.chave) {
+                crescente = !crescente;
+            } else {
+                chave = th.dataset.chave;
+                crescente = true;
+            }
+            desenhar();
+        });
+    });
+
+    desenhar();
+})();
+</script>
+"""
+ranking = ranking.replace("__DADOS__", dados_ranking)
+
+mapa.get_root().html.add_child(folium.Element(legenda + titulo + estilo_rotulos + ranking))
 mapa.save("saidas/mapa_ubs_distrito.html")
 print("mapa salvo")
