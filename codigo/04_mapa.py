@@ -67,7 +67,11 @@ colunas = ["nome_distrito", "pop_texto", "area_texto", "qtd_ubs", "indicador_tex
 
 def texto_faixa(classe):
     if classe == 0:
-        return "sem UBS dentro do distrito"
+        return (
+            "sem UBS dentro do distrito<br>"
+            "Pode haver cobertura por UBS de distritos vizinhos.<br>"
+            "A população flutuante não é contada."
+        )
     if classe == 8:
         return "outlier (fora das 7 faixas)"
     return f"{classe} de 7 (1 = menor oferta)"
@@ -209,6 +213,9 @@ line-height:1.5;box-shadow:0 1px 4px rgba(0,0,0,0.3);">
 <span style="color:#555;">7 faixas por quantil, entre os distritos com UBS, exceto outliers</span>
 {linhas}
 <div style="margin-top:6px;color:#555;font-size:11px;">
+Mede a oferta pública de UBS por habitante, e não a necessidade de saúde.
+O valor é do distrito, e não de cada bairro.</div>
+<div style="margin-top:6px;color:#555;font-size:11px;">
 Fontes: GeoSampa (Prefeitura de SP); IBGE, Censo 2022</div>
 </div>
 """
@@ -237,11 +244,11 @@ estilo_rotulos = """
 </style>
 """
 
-dados_ranking = dados_mapa[["nome_distrito", "ubs_por_100mil", "qtd_ubs", "populacao"]].to_json(orient="records", force_ascii=False)
+dados_ranking = dados_mapa[["nome_distrito", "ubs_por_100mil", "qtd_ubs", "populacao", "classe"]].to_json(orient="records", force_ascii=False)
 
 ranking = """
 <div id="ranking" style="position:fixed;bottom:30px;right:10px;z-index:9999;background:white;
-border:1px solid #888;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,0.3);font-size:12px;width:360px;">
+border:1px solid #888;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,0.3);font-size:12px;width:390px;">
 <div style="padding:6px 10px;font-weight:bold;border-bottom:1px solid #ccc;">
 Ranking de distritos
 <span style="font-weight:normal;color:#555;">(clique no título da coluna para ordenar)</span>
@@ -268,6 +275,17 @@ Ranking de distritos
     var chave = "ubs_por_100mil";
     var crescente = true;
 
+    function textoIndicador(d) {
+        if (d.classe === 0) {
+            return "sem UBS no distrito";
+        }
+        var valor = d.ubs_por_100mil.toFixed(2).replace(".", ",");
+        if (d.classe === 8) {
+            return valor + " (outlier)";
+        }
+        return valor;
+    }
+
     function desenhar() {
         dados.sort(function (a, b) {
             var va = a[chave];
@@ -280,7 +298,7 @@ Ranking de distritos
 
         document.getElementById("rank-corpo").innerHTML = dados.map(function (d) {
             return "<tr><td>" + d.nome_distrito + "</td><td>" +
-                d.ubs_por_100mil.toFixed(2).replace(".", ",") + "</td><td>" +
+                textoIndicador(d) + "</td><td>" +
                 d.qtd_ubs + "</td><td>" + d.populacao.toLocaleString("pt-BR") + "</td></tr>";
         }).join("");
 
