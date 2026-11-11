@@ -77,11 +77,32 @@ dados_mapa["faixa_texto"] = dados_mapa["classe"].apply(texto_faixa)
 folium.GeoJson(
     dados_mapa[colunas],
     style_function=estilo,
-          tooltip=folium.GeoJsonTooltip(
+    tooltip=folium.GeoJsonTooltip(
         fields=["nome_distrito", "pop_texto", "area_texto", "qtd_ubs", "indicador_texto", "faixa_texto"],
         aliases=["Distrito", "População", "Área (km²)", "UBS públicas", "UBS por 100 mil hab.", "Faixa"],
     ),
 ).add_to(mapa)
+
+ubs = gpd.read_file("dados/bruto/geoportal_equipamento_saude_ubs_posto_centro_v2.gpkg")
+ubs = ubs[ubs["nm_esfera_administrativa_equipamento"].isin(["Municipal", "Estadual"])]
+ubs = ubs.to_crs(epsg=4326)
+
+camada_ubs = folium.FeatureGroup(name="UBS públicas (pontos)", show=True)
+
+for nome, endereco, ponto in zip(ubs["nm_equipamento"], ubs["tx_endereco_equipamento"], ubs.geometry):
+    folium.CircleMarker(
+        location=[ponto.y, ponto.x],
+        radius=3,
+        color="#000000",
+        weight=1,
+        fill=True,
+        fill_color="#ffffff",
+        fill_opacity=1,
+        tooltip=f"{nome}<br>{endereco}",
+    ).add_to(camada_ubs)
+
+camada_ubs.add_to(mapa)
+folium.LayerControl(collapsed=False).add_to(mapa)
 
 dados_mapa["ordem_area"] = dados_mapa["area_km2"].rank(ascending=False, method="first")
 
@@ -136,32 +157,32 @@ class ZoomRotulos(MacroElement):
         var mapaRef = {{ this._parent.get_name() }};
 
         function atualizarRotulos() {
-    var zoomAtual = mapaRef.getZoom();
-    var rotulos = Array.from(document.querySelectorAll('.rotulo-distrito'));
-    rotulos.sort(function (a, b) {
-        return Number(a.dataset.ordem) - Number(b.dataset.ordem);
-    });
-
-    var ocupados = [];
-    rotulos.forEach(function (el) {
-        var visivel = zoomAtual >= Number(el.dataset.zoom);
-
-        if (visivel) {
-            var caixa = el.getBoundingClientRect();
-            var bate = ocupados.some(function (o) {
-                return caixa.left < o.right + 3 && caixa.right > o.left - 3 &&
-                       caixa.top < o.bottom + 2 && caixa.bottom > o.top - 2;
+            var zoomAtual = mapaRef.getZoom();
+            var rotulos = Array.from(document.querySelectorAll('.rotulo-distrito'));
+            rotulos.sort(function (a, b) {
+                return Number(a.dataset.ordem) - Number(b.dataset.ordem);
             });
-            if (bate) {
-                visivel = false;
-            } else {
-                ocupados.push(caixa);
-            }
-        }
 
-        el.style.opacity = visivel ? 1 : 0;
-    });
-}
+            var ocupados = [];
+            rotulos.forEach(function (el) {
+                var visivel = zoomAtual >= Number(el.dataset.zoom);
+
+                if (visivel) {
+                    var caixa = el.getBoundingClientRect();
+                    var bate = ocupados.some(function (o) {
+                        return caixa.left < o.right + 3 && caixa.right > o.left - 3 &&
+                               caixa.top < o.bottom + 2 && caixa.bottom > o.top - 2;
+                    });
+                    if (bate) {
+                        visivel = false;
+                    } else {
+                        ocupados.push(caixa);
+                    }
+                }
+
+                el.style.opacity = visivel ? 1 : 0;
+            });
+        }
 
         mapaRef.on('zoomend', atualizarRotulos);
         atualizarRotulos();
