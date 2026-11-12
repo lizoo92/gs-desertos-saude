@@ -224,7 +224,7 @@ titulo = """
 <div style="position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:9999;
 background:white;padding:6px 14px;border:1px solid #888;border-radius:6px;
 font-size:15px;font-weight:bold;box-shadow:0 1px 4px rgba(0,0,0,0.3);">
-Oferta de UBS públicas por distrito, município de São Paulo
+Distribuição das UBS por habitante nos distritos da cidade de São Paulo
 </div>
 """
 

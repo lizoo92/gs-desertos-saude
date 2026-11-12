@@ -1,10 +1,11 @@
-# Onde faltam serviços de saúde: UBS públicas por distrito em São Paulo
+# Distribuição das UBS por habitante nos distritos da cidade de São Paulo
 
 Projeto da **Global Solution FIAP 2026/2 (CitizenTech)**, curso de Ciência de Dados.
 Ideia #4: *onde faltam serviços de saúde*.
 
 - Grupo: Luiz Fernando de Oliveira Pupo, Victor Cabrini, Tiago Sanches Biscari
 - Vídeo (até 5 min): [preencher link do YouTube]
+- Repositório público no GitHub.
 
 ## 1. O que o projeto faz
 
@@ -14,17 +15,27 @@ com as **UBS públicas** (GeoSampa) e mostra o resultado em um mapa coroplético
 Indicador principal: **UBS públicas por 100 mil habitantes**, calculado como
 `qtd_ubs / população × 100.000`.
 
+O indicador mede a **oferta pública de UBS por habitante**, e não a necessidade de saúde.
+Por isso o mapa usa os termos "menor oferta" e "maior oferta".
+
 Como o mapa é construído:
-- Classe 0: distritos sem nenhuma UBS pública dentro do limite.
-- Classes 1 a 7: faixas por quantil entre os distritos com UBS, excluindo os outliers
-  (1 = mais carente, 7 = menos carente).
+- Classe 0: distritos sem nenhuma UBS pública dentro do limite (4 distritos).
+- Classes 1 a 7: 7 faixas por quantil entre os distritos com UBS, excluindo os outliers
+  (1 = menor oferta, 7 = maior oferta).
 - Classe 8: outliers (Marsilac e Parelheiros). Critério: indicador acima da cerca de Tukey
   **e** densidade abaixo da cerca de Tukey (na escala logarítmica).
   Nesses dois distritos de território extenso e pouco povoado, o indicador por habitante
   pode superestimar a oferta, pois não mede distância.
 
-O mapa mostra, ao passar o mouse, a população, a área (km²), o número de UBS, o indicador e a faixa.
-Os nomes dos distritos aparecem por zoom, com anticolisão automática.
+O que o mapa tem:
+- Camadas nomeadas, que podem ser ligadas e desligadas: distritos (UBS por 100 mil habitantes) e pontos das UBS públicas.
+- Ao passar o mouse sobre um distrito: população, área (km²), número de UBS, o indicador e a faixa.
+- Nomes dos distritos que aparecem conforme o zoom, com anticolisão automática.
+- Legenda com as 7 faixas, os outliers e os distritos sem UBS, e uma nota dizendo que o mapa mede
+  oferta, e não necessidade, e que o valor é do distrito, e não de cada bairro.
+- Ranking de distritos ordenável: clique no título da coluna para ordenar.
+  Distritos sem UBS aparecem como "sem UBS no distrito", e os outliers com "(outlier)".
+- Aviso nos distritos sem UBS: pode haver cobertura por UBS de distritos vizinhos, e a população flutuante não é contada.
 
 ## 2. Principais resultados (exploratórios)
 
@@ -95,10 +106,11 @@ python codigo/04_mapa.py
 
 Os scripts `05` a `11` são exploratórios e podem ser rodados em qualquer ordem depois do `03`.
 O mapa é salvo em `saidas/mapa_ubs_distrito.html` (abra no navegador).
+O mapa de fundo é do OpenStreetMap, então é preciso estar com internet para ele aparecer.
 
 ## 5. Bibliotecas
 
-### Em uso (versões do `requirements.txt`)
+Versões do `requirements.txt`:
 
 | Biblioteca | Versão | Uso no projeto |
 |---|---|---|
@@ -106,19 +118,11 @@ O mapa é salvo em `saidas/mapa_ubs_distrito.html` (abra no navegador).
 | geopandas | 1.2.0 | leitura dos `.gpkg`, área dos distritos, geometrias |
 | shapely, pyogrio, pyproj | 2.2.0, 0.13.0, 3.8.0 | geometria, leitura de arquivos geográficos e projeções (dependências do geopandas) |
 | folium | 0.20.0 | mapa interativo (Leaflet) |
-| branca, Jinja2 | 0.8.2, 3.1.6 | elementos HTML/JS do mapa (legenda, rótulos por zoom) |
+| branca, Jinja2 | 0.8.2, 3.1.6 | elementos HTML/JS do mapa (legenda, ranking, rótulos por zoom) |
 | matplotlib | 3.11.2 | boxplots e gráficos de dispersão |
 | scipy | 1.18.1 | cálculo da correlação de Spearman no pandas |
 | openpyxl | 3.1.5 | leitura do dicionário de dados do IBGE (`.xlsx`) |
 | numpy | 2.5.4 | cálculos numéricos (por exemplo, cercas em log10) |
-
-### Possíveis próximas (ainda não decididas)
-
-- **streamlit**: já aparece no `requirements.txt`; uso a confirmar (painel interativo).
-- **plotly ou seaborn**: gráficos mais interativos ou estatísticos.
-- **statsmodels ou scikit-learn**: modelos (regressão) para controlar o efeito da renda.
-- **contextily, osmnx ou networkx**: distância real até a UBS mais próxima (hoje não medimos distância).
-- **pytest**: testes dos scripts.
 
 ## 6. Fontes e bibliografia
 
@@ -158,7 +162,6 @@ Consultadas em 10/11/2026 (reportagens, sem fonte primária conferida):
 - Tribuna de Minas, 2025 (critério Tendências): https://tribunademinas.com.br/colunas/maistendencias/?p=26881
 - O Antagonista, valor do salário mínimo de 2026 (R$ 1.621), **a confirmar em fonte oficial**:
   https://oantagonista.com.br/ladooa/entretenimento/quanto-e-preciso-ganhar-para-entrar-na-classe-alta-em-2026/
-- Fundação Seade, **IPVS** (Índice Paulista de Vulnerabilidade Social): possível referência futura.
 
 ### Método
 
@@ -169,8 +172,9 @@ Consultadas em 10/11/2026 (reportagens, sem fonte primária conferida):
 ## 7. Limitações
 
 Resumo; o texto completo está no relatório do projeto.
-- O indicador mede oferta **relativa por habitante**, não distância nem tempo de deslocamento.
+- O indicador mede oferta **relativa por habitante**, não a necessidade de saúde, nem distância ou tempo de deslocamento.
 - Considera **apenas UBS públicas**. Não inclui rede privada, AMA, hospitais ou outros equipamentos.
+- O valor é do distrito, e não de cada bairro. A população flutuante não é contada.
 - População do Censo 2022 combinada com camadas de 2025/2026.
 - Efeito de borda: moradores podem usar UBS de distritos vizinhos (não testado).
 - Poucas UBS por distrito (contagens pequenas): o indicador varia muito com uma UBS a mais ou a menos.
